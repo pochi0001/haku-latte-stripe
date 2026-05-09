@@ -1352,3 +1352,18 @@ section,
     line-height: 1.85;
   }
 }
+
+.checkout-guide {
+  margin: 18px 0 0;
+  font-size: 14px;
+  font-weight: 900;
+  color: #4b4540;
+}
+
+.square-btn:disabled,
+.paypay-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}

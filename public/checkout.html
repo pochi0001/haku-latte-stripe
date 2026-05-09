@@ -41,7 +41,12 @@
       </p>
     </div>
 
-    <h3>お届け先情報</h3>
+
+
+    <h3>お届け先情報    <p id="checkout-guide" class="checkout-guide">
+      お届け先情報を入力すると、決済ボタンを押せるようになります。
+    </p>
+    </h3>
     <div id="customer-info">
       <label>名前
         <input type="text" id="customer-name" required />
@@ -208,8 +213,6 @@
     if (!cart || cart.length === 0) {
   list.innerHTML = "<p>カートは空です。</p>";
   document.getElementById("total-price").textContent = "¥0";
-  const btn = document.getElementById("square-pay");
-  if (btn) btn.disabled = true;
   return;
 }
 
@@ -251,18 +254,7 @@
 });
 
     document.getElementById("total-price").textContent = "¥" + total.toLocaleString();
-
-    // 在庫切れが混ざってたら決済ボタンを止める（見た目だけでも事故防止）
-    const btn = document.getElementById("square-pay");
-    if (btn) {
-      const errs = validateCartStock(cart);
-      btn.disabled = errs.length > 0;
-      if (errs.length > 0) {
-        setStatus("在庫切れの商品があります。カートから削除してください。", false);
-      } else {
-        setStatus("", true);
-      }
-    }
+    updatePayButtonsState();
   }
 
   // カートから削除
@@ -336,6 +328,44 @@
     card = await payments.card();
     await card.attach("#card-container");
   }
+
+  function isCustomerInfoComplete() {
+    const name = document.getElementById("customer-name")?.value.trim();
+    const address = document.getElementById("customer-address")?.value.trim();
+    const email = document.getElementById("customer-email")?.value.trim();
+    const phone = document.getElementById("customer-phone")?.value.trim();
+
+    return Boolean(name && address && email && phone);
+  }
+
+  function updatePayButtonsState() {
+    const squareBtn = document.getElementById("square-pay");
+    const paypayBtn = document.getElementById("paypay-pay");
+    const guide = document.getElementById("checkout-guide");
+
+    const cart = getCart();
+    const hasCart = Array.isArray(cart) && cart.length > 0;
+    const customerOk = isCustomerInfoComplete();
+    const stockOk = validateCartStock(cart).length === 0;
+
+    const ok = hasCart && customerOk && stockOk;
+
+    if (squareBtn) squareBtn.disabled = !ok;
+    if (paypayBtn) paypayBtn.disabled = !ok;
+
+    if (guide) {
+      if (!hasCart) {
+        guide.textContent = "カートに商品が入っていません。";
+      } else if (!stockOk) {
+        guide.textContent = "在庫切れの商品があります。カートを確認してください。";
+      } else if (!customerOk) {
+        guide.textContent = "お届け先情報をすべて入力すると、決済ボタンを押せるようになります。";
+      } else {
+        guide.textContent = "入力完了です。お支払い方法を選択してください。";
+      }
+    }
+  }
+
 
   async function onPayClick() {
     const btn = document.getElementById("square-pay");
@@ -541,24 +571,40 @@ async function onPayPayClick() {
 
   // 初期化
   document.addEventListener("DOMContentLoaded", async () => {
-    // ✅ まず在庫を取ってからカート描画（在庫表示もできる）
+
+    // ① 入力欄に文字を入れるたびにボタン状態を更新
+    ["customer-name", "customer-address", "customer-email", "customer-phone"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", updatePayButtonsState);
+      }
+    });
+
+    // ② まず在庫を取得
     await fetchProducts();
+
+    // ③ カート表示
     loadCart();
 
-    if (!document.getElementById("card-container")) return;
-    await initSquareCard();
-
-    const btn = document.getElementById("square-pay");
-    if (!btn) {
-      console.error("❌ #square-pay が見つかりません");
-      return;
+    // ④ Squareカード欄を初期化
+    if (document.getElementById("card-container")) {
+      await initSquareCard();
     }
-    btn.addEventListener("click", onPayClick);
-    const paypayBtn = document.getElementById("paypay-pay");
 
+    // ⑤ Squareボタンにイベント追加
+    const squareBtn = document.getElementById("square-pay");
+    if (squareBtn) {
+      squareBtn.addEventListener("click", onPayClick);
+    }
+
+    // ⑥ PayPayボタンにイベント追加
+    const paypayBtn = document.getElementById("paypay-pay");
     if (paypayBtn) {
       paypayBtn.addEventListener("click", onPayPayClick);
     }
+
+    // ⑦ 最後にボタン状態を確定
+    updatePayButtonsState();
   });
   </script>
 
