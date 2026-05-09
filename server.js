@@ -751,7 +751,7 @@ app.post("/paypay/create-payment", async (req, res) => {
         currency: "JPY",
       },
       orderDescription: "Haku Latte. order",
-      redirectUrl: `https://localhost:3000/success.html?paypayOrderId=${merchantPaymentId}`,
+      redirectUrl: `${process.env.BASE_URL}/success.html?paypayOrderId=${merchantPaymentId}`,
       redirectType: "WEB_LINK",
     };
 
