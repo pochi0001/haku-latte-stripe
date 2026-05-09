@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Haku Latte. 管理</title>
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+
+<header>
+  <h1>Haku Latte. 管理</h1>
+  <p class="muted">/admin と /admin/api/* は Basic認証で保護されています</p>
+</header>
+
+<main>
+  <section>
+    <h2>商品一覧（編集＋画像）</h2>
+    <div class="muted">画像は「ファイル選択→画像アップ」で /img/{id}.jpg に保存されます。</div>
+    <div id="products"></div>
+  </section>
+
+  <section>
+    <h2>商品追加</h2>
+    <div class="row">
+      <input id="new-name" placeholder="商品名" style="flex:1;min-width:220px">
+      <input id="new-price" type="number" placeholder="価格(円)" min="0">
+      <input id="new-stock" type="number" placeholder="在庫" min="0">
+      <button id="btn-add">追加</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="row" style="justify-content:space-between;">
+      <h2 style="margin:0;">注文一覧（最新50件）</h2>
+      <a class="btn secondary" href="/admin/api/orders.csv">CSVダウンロード</a>
+    </div>
+    <div id="orders" style="margin-top:10px;"></div>
+  </section>
+</main>
+
+<script src="/admin.js"></script>
+</body>
+</html>

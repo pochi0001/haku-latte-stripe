@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ja">
+  
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta charset="UTF-8" />
+  <title>購入手続き | Haku Latte.</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="page-checkout">
+
+  <header class="site-header">
+    <a href="/index.html" class="logo">Haku Latte.</a>
+
+    <nav>
+      <a href="/index.html">TOP</a>
+      <a href="/index.html#about">ABOUT</a>
+      <a href="/index.html#howto">HOW TO</a>
+      <a href="/index.html#product">PRODUCT</a>
+    </nav>
+  </header>
+
+  <main class="cart-page">
+
+    <h2 class="cart-title">カート内容</h2>
+    <div id="cart-list" class="cart-list"></div>
+
+    <div class="cart-summary">
+      <p class="cart-total">
+        合計：<span id="total-price">¥0</span>
+      </p>
+    </div>
+
+    <h3>お届け先情報</h3>
+    <div id="customer-info">
+      <label>名前
+        <input type="text" id="customer-name" required />
+      </label>
+
+      <label>住所
+        <input type="text" id="customer-address" required />
+      </label>
+
+      <label>メールアドレス
+        <input type="email" id="customer-email" required />
+      </label>
+
+      <label>電話番号
+        <input type="text" id="customer-phone" required />
+      </label>
+    </div>
+
+    <h3>カード情報</h3>
+    <div id="card-container"></div>
+    <div id="payment-status-container" style="margin-top:8px;"></div>
+
+    <div class="pay-buttons">
+      <button id="square-pay" class="square-btn" type="button">
+        Squareで支払う
+      </button>
+
+      <button id="paypay-pay" class="paypay-btn" type="button">
+        PayPayで支払う
+      </button>
+    </div>
+
+  </main>
+
+<footer class="site-footer">
+    <p class="site-name">Haku Latte.</p>
+
+    <nav class="sub-nav">
+      <ul class="sub-nav-menu">
+        <li><a href="tokusho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="corporate.html">運営者情報</a></li>
+        <li><a href="access.html">お問い合わせ</a></li>
+      </ul>
+    </nav>
+
+        <div class="footer-social">
+          <a
+            class="footer-ig"
+            href="https://www.instagram.com/ke_free_spirit?igsh=Ym52c2s0c2Vkd3Nx&utm_source=qr"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Instagram"
+          >
+            <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <defs>
+                <linearGradient id="igGrad" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FEDA75"/>
+                  <stop offset="25%" stop-color="#FA7E1E"/>
+                  <stop offset="50%" stop-color="#D62976"/>
+                  <stop offset="75%" stop-color="#962FBF"/>
+                  <stop offset="100%" stop-color="#4F5BD5"/>
+                </linearGradient>
+              </defs>
+              <path fill="url(#igGrad)" d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9A5.5 5.5 0 0 1 16.5 22h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm9 2h-9A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9A3.5 3.5 0 0 0 20 16.5v-9A3.5 3.5 0 0 0 16.5 4z"/>
+              <path fill="url(#igGrad)" d="M12 7.2a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6zm0 2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z"/>
+              <circle cx="17.1" cy="6.9" r="1.1" fill="url(#igGrad)"/>
+            </svg>
+            <span class="ig-text">Instagram</span>
+          </a>
+        </div>
+
+    <p class="accepted-text">お支払い方法：</p>
+    <p class="payment-text">Visa / Mastercard / JCB / Square</p>
+    <p class="small-note">※ロゴは商標ガイドラインに基づき省略しています。</p>
+    
+    
+    
+  </footer>
+
+  <!-- Square Web Payments SDK（環境で自動切替） -->
+  <script id="square-sdk"></script>
+
+  <script>
+  let squareConfig = null;
+  let card = null;
+
+  // checkout側でも在庫を確認するために保持
+  let productsMap = new Map(); // id -> product
+
+  async function loadSquareConfig() {
+    const res = await fetch("/square-config");
+    squareConfig = await res.json();
+    return squareConfig;
+  }
+
+  async function loadSquareSdk(env) {
+    return new Promise((resolve, reject) => {
+      const script = document.getElementById("square-sdk");
+      script.src =
+        env === "production"
+          ? "https://web.squarecdn.com/v1/square.js"
+          : "https://sandbox.web.squarecdn.com/v1/square.js";
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("Square SDK load failed"));
+    });
+  }
+
+  // ✅ サーバーから最新在庫を取得
+  async function fetchProducts() {
+    const res = await fetch("/products", { cache: "no-store" });
+    const products = await res.json();
+    productsMap = new Map(products.map(p => [Number(p.id), p]));
+    return productsMap;
+  }
+
+  function getCart() {
+    return JSON.parse(localStorage.getItem("cart") || "[]");
+  }
+
+  function saveCart(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }
+
+  function calcTotal(cart) {
+    return cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.qty || 1), 0);
+  }
+
+  // ステータス表示
+  function setStatus(text, ok) {
+    const el = document.getElementById("payment-status-container");
+    if (!el) return;
+    el.textContent = text || "";
+    el.style.color = ok ? "green" : "crimson";
+  }
+
+  // ✅ カート内アイテムを「最新在庫」で検証（決済前に弾く）
+  function validateCartStock(cart) {
+    const errors = [];
+    for (const item of cart) {
+      const p = productsMap.get(Number(item.id));
+      if (!p) {
+        errors.push(`商品が見つかりません: ${item.name || `id=${item.id}`}`);
+        continue;
+      }
+      if (Number(p.stock) <= 0) {
+        errors.push(`在庫切れです: ${p.name}`);
+        continue;
+      }
+      // 1人1点（qty=1）想定ならこれで十分
+      const qty = Number(item.qty || 1);
+      if (qty > Number(p.stock)) {
+        errors.push(`在庫が不足しています: ${p.name}（在庫:${p.stock}）`);
+      }
+    }
+    return errors;
+  }
+
+  // カート表示（最新在庫があれば表示に反映）
+  function loadCart() {
+    const cart = getCart();
+    const list = document.getElementById("cart-list");
+    let total = 0;
+
+    if (!cart || cart.length === 0) {
+  list.innerHTML = "<p>カートは空です。</p>";
+  document.getElementById("total-price").textContent = "¥0";
+  const btn = document.getElementById("square-pay");
+  if (btn) btn.disabled = true;
+  return;
+}
+
+    list.innerHTML = "";
+
+    cart.forEach((item, index) => {
+  const qty = Number(item.qty || 1);
+  total += Number(item.price || 0) * qty;
+
+  const p = productsMap.get(Number(item.id));
+  const soldOut = p ? Number(p.stock) <= 0 : false;
+
+  list.innerHTML += `
+    <div class="cart-item ${soldOut ? "sold-out" : ""}">
+      <img src="/img/${item.id}.jpg" class="cart-img" alt="${item.name || ""}">
+
+      <div class="cart-info">
+        <h4>${item.name}</h4>
+        <p class="price">¥${Number(item.price).toLocaleString()}</p>
+
+        ${
+          p
+            ? `<p class="stock ${soldOut ? "soldout" : ""}">
+                ${soldOut ? "在庫切れ" : `在庫：${p.stock}個`}
+              </p>`
+            : ""
+        }
+
+        <div class="qty-control">
+          <button class="qty-btn" type="button" onclick="changeQty(${index}, -1)" aria-label="減らす">−</button>
+          <span class="qty-num">${qty}</span>
+          <button class="qty-btn" type="button" onclick="changeQty(${index}, 1)" aria-label="増やす">＋</button>
+
+          <button class="trash-btn" type="button" onclick="removeLine(${index})" aria-label="削除">×</button>
+        </div>
+      </div>
+    </div>
+  `;
+});
+
+    document.getElementById("total-price").textContent = "¥" + total.toLocaleString();
+
+    // 在庫切れが混ざってたら決済ボタンを止める（見た目だけでも事故防止）
+    const btn = document.getElementById("square-pay");
+    if (btn) {
+      const errs = validateCartStock(cart);
+      btn.disabled = errs.length > 0;
+      if (errs.length > 0) {
+        setStatus("在庫切れの商品があります。カートから削除してください。", false);
+      } else {
+        setStatus("", true);
+      }
+    }
+  }
+
+  // カートから削除
+  window.changeQty = function(index, diff) {
+    const cart = getCart();
+    if (!cart[index]) return;
+
+    const current = Number(cart[index].qty || 1);
+    let next = current + diff;
+
+    // 0以下なら行ごと削除（−を押し続けたら消える）
+    if (next <= 0) {
+      cart.splice(index, 1);
+      saveCart(cart);
+      loadCart();
+      return;
+    }
+
+    // ✅ 在庫上限（productsMapがある時だけチェック）
+    const id = Number(cart[index].id);
+    const p = productsMap.get(id);
+    if (p) {
+      const max = Number(p.stock || 0);
+
+      // 在庫0のときは増やせない（自然な挙動）
+      if (max <= 0) {
+        alert("在庫切れです");
+        return;
+      }
+
+      // 在庫を超えたら止める
+      if (next > max) {
+        next = max;
+        alert(`在庫は最大 ${max} 個です`);
+      }
+    }
+
+    cart[index].qty = next;
+    saveCart(cart);
+    loadCart();
+  };
+
+  window.removeLine = function(index) {
+    const cart = getCart();
+    if (!cart[index]) return;
+    cart.splice(index, 1);
+    saveCart(cart);
+    loadCart();
+  };
+
+  async function initSquareCard() {
+    const container = document.getElementById("card-container");
+    if (!container) {
+      console.error("❌ #card-container が見つかりません");
+      return;
+    }
+
+    // ① サーバーから env/appId/locationId を取得
+    const cfg = await loadSquareConfig();
+
+    // ② env に合わせて square.js を読み込む
+    await loadSquareSdk(cfg.env);
+
+    if (!window.Square) {
+      console.error("❌ Square.js failed to load");
+      return;
+    }
+
+    // ③ 取得した appId/locationId を使う
+    const payments = window.Square.payments(cfg.appId, cfg.locationId);
+    card = await payments.card();
+    await card.attach("#card-container");
+  }
+
+  async function onPayClick() {
+    const btn = document.getElementById("square-pay");
+
+    try {
+      btn.disabled = true;
+      setStatus("処理中…", true);
+
+      // 入力チェック
+      const name = document.getElementById("customer-name").value.trim();
+      const address = document.getElementById("customer-address").value.trim();
+      const email = document.getElementById("customer-email").value.trim();
+      const phone = document.getElementById("customer-phone").value.trim();
+
+      if (!name || !address || !email || !phone) {
+        alert("お届け先情報をすべて入力してください。");
+        setStatus("", true);
+        btn.disabled = false;
+        return;
+      }
+
+      const cart = getCart();
+      if (!cart || cart.length === 0) {
+        alert("カートが空です。");
+        setStatus("", true);
+        btn.disabled = false;
+        return;
+      }
+
+
+
+
+
+
+
+
+
+
+      // ✅ ここが追加ポイント：決済直前に最新在庫で再チェック
+      await fetchProducts();
+      const stockErrors = validateCartStock(cart);
+      if (stockErrors.length > 0) {
+        alert(stockErrors.join("\n"));
+        loadCart(); // 表示も更新（在庫切れ表示）
+        btn.disabled = false;
+        return;
+      }
+
+      if (!card) {
+        alert("カード入力が初期化できていません。ページを再読み込みしてください。");
+        setStatus("", false);
+        btn.disabled = false;
+        return;
+      }
+
+      // tokenize
+      const tokenResult = await card.tokenize();
+      if (tokenResult.status !== "OK") {
+        alert("カード情報の確認に失敗しました。入力を見直してください。");
+        console.error(tokenResult);
+        setStatus("カード情報の確認に失敗しました。", false);
+        btn.disabled = false;
+        return;
+      }
+
+      // /payment へ送信
+      const res = await fetch("/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceId: tokenResult.token,
+          idempotencyKey: window.crypto.randomUUID(),
+          cart,
+          email,
+          name,
+          address,
+          phone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.error || "決済に失敗しました。");
+        setStatus(data.error || "決済に失敗しました。", false);
+        btn.disabled = false;
+        return;
+      }
+
+      // success.html 用に保存（←ここを置き換え）
+      localStorage.setItem("lastOrder", JSON.stringify({
+        createdAt: Date.now(),               // ✅ 追加：いつの注文か
+        items: (data.order?.items || cart).map(it => ({
+          id: Number(it.id),                 // ✅ 重要：サムネ表示に必要
+          name: it.name,
+          price: Number(it.price),
+          qty: Number(it.qty || 1),
+        })),
+        total: Number(data.order?.total || calcTotal(cart)),
+      }));
+
+      localStorage.removeItem("cart");
+      window.location.href = "/success.html"; // ✅ 先頭スラッシュで統一
+
+    } catch (e) {
+      console.error(e);
+      alert("例外が発生しました（コンソール参照）");
+      setStatus("例外が発生しました。", false);
+      if (btn) btn.disabled = false;
+    }
+  }
+
+
+
+
+
+
+
+
+async function onPayPayClick() {
+  try {
+    const cart = getCart();
+
+    if (!cart || cart.length === 0) {
+      alert("カートが空です。");
+      return;
+    }
+
+    const name = document.getElementById("customer-name").value.trim();
+    const address = document.getElementById("customer-address").value.trim();
+    const email = document.getElementById("customer-email").value.trim();
+    const phone = document.getElementById("customer-phone").value.trim();
+
+    if (!name || !address || !email || !phone) {
+      alert("お届け先情報をすべて入力してください。");
+      return;
+    }
+
+    await fetchProducts();
+
+    const stockErrors = validateCartStock(cart);
+
+    if (stockErrors.length > 0) {
+      alert(stockErrors.join("\n"));
+      loadCart();
+      return;
+    }
+
+    const res = await fetch("/paypay/create-payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cart,
+        name,
+        address,
+        email,
+        phone,
+      }),
+    });
+
+    const data = await res.json();
+
+    console.log("PayPay create:", data);
+
+    if (!res.ok || !data.success) {
+      alert(data.error || "PayPay決済開始に失敗しました");
+      return;
+    }
+
+    localStorage.setItem(
+      "lastOrder",
+      JSON.stringify({
+        createdAt: Date.now(),
+        items: data.itemsDetailed,
+        total: data.total,
+      })
+    );
+
+    window.location.href = data.url;
+
+  } catch (err) {
+    console.error(err);
+    alert("PayPayエラー");
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // 初期化
+  document.addEventListener("DOMContentLoaded", async () => {
+    // ✅ まず在庫を取ってからカート描画（在庫表示もできる）
+    await fetchProducts();
+    loadCart();
+
+    if (!document.getElementById("card-container")) return;
+    await initSquareCard();
+
+    const btn = document.getElementById("square-pay");
+    if (!btn) {
+      console.error("❌ #square-pay が見つかりません");
+      return;
+    }
+    btn.addEventListener("click", onPayClick);
+    const paypayBtn = document.getElementById("paypay-pay");
+
+    if (paypayBtn) {
+      paypayBtn.addEventListener("click", onPayPayClick);
+    }
+  });
+  </script>
+
+</body>
+</html>

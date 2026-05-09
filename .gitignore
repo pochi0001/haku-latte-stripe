@@ -1,0 +1,6 @@
+.env
+database.db
+node_modules/
+certs/
+*.pem
+*.key

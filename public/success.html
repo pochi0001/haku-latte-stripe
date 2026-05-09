@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>決済完了 | Haku Latte.</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body class="page-success">
+
+  <!-- ✅ Haku Latte.共通ヘッダー -->
+  <header class="site-header">
+    <a href="/index.html" class="logo">Haku Latte.</a>
+
+    <nav>
+      <a href="/index.html">TOP</a>
+      <a href="/index.html#about">ABOUT</a>
+      <a href="/index.html#howto">HOW TO</a>
+      <a href="/index.html#product">PRODUCT</a>
+    </nav>
+  </header>
+
+  <main class="success-page">
+    <section class="success-card">
+      <!-- <div class="success-check">✓</div> -->
+      <h2 class="success-title" id="success-title">ご注文ありがとうございます。</h2>
+      <p class="success-lead" id="success-lead">発送準備が整い次第お届けします。</p>
+      <!-- <p class="success-lead" id="success-note">トップページへ戻ることができます。</p> -->
+
+      <div class="success-body">
+        <h3 class="success-subtitle">ご購入内容</h3>
+
+        <ul id="order-items" class="success-items"></ul>
+
+        <div class="success-total">
+          <span>合計</span>
+          <span>¥<span id="order-total">0</span></span>
+        </div>
+      </div>
+
+      <div class="success-actions">
+        <a href="/index.html" class="success-btn">トップに戻る</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ✅ Haku Latte.共通フッター（indexと同じ） -->
+  <footer class="site-footer">
+    <p class="site-name">Haku Latte.</p>
+
+    <nav class="sub-nav">
+      <ul class="sub-nav-menu">
+        <li><a href="/tokusho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="/corporate.html">運営者情報</a></li>
+        <li><a href="/access.html">お問い合わせ</a></li>
+      </ul>
+    </nav>
+
+    <p class="accepted-text">お支払い方法：</p>
+    <p class="payment-text">Visa / Mastercard / JCB / Square</p>
+    <p class="small-note">※ロゴは商標ガイドラインに基づき省略しています。</p>
+  </footer>
+
+<script>
+  function safeParse(json) {
+    try { return JSON.parse(json); } catch { return null; }
+  }
+
+  function yen(n) {
+    const num = Number(n || 0);
+    return Number.isFinite(num) ? num.toLocaleString() : "0";
+  }
+
+  localStorage.removeItem("cart");
+
+  const listEl = document.getElementById("order-items");
+  const totalEl = document.getElementById("order-total");
+
+  const raw = localStorage.getItem("lastOrder");
+  const lastOrder = raw ? safeParse(raw) : null;
+
+  const params = new URLSearchParams(window.location.search);
+  const paypayOrderId = params.get("paypayOrderId");
+
+  const TTL_MS = 30 * 60 * 1000;
+
+  function renderMissing() {
+    listEl.innerHTML = "<li>購入情報が見つかりませんでした。</li>";
+    totalEl.textContent = "0";
+  }
+
+  function renderOrder(order) {
+    listEl.innerHTML = "";
+
+    order.items.forEach(it => {
+      const id = it?.id;
+      const name = it?.name ?? "Item";
+      const price = Number(it?.price || 0);
+      const qty = Number(it?.qty || 1);
+
+      const li = document.createElement("li");
+      li.className = "success-item";
+
+      const img = document.createElement("img");
+      img.className = "success-thumb";
+      img.alt = name;
+      img.src = (id != null) ? `/img/${id}.jpg?ts=${Date.now()}` : "/img/noimage.jpg";
+      img.onerror = () => { img.src = "/img/noimage.jpg"; };
+
+      const nameEl = document.createElement("span");
+      nameEl.className = "success-item-name";
+      nameEl.textContent = name;
+
+      const priceEl = document.createElement("span");
+      priceEl.className = "success-item-price";
+      priceEl.textContent = qty > 1 ? `¥${yen(price)} × ${qty}` : `¥${yen(price)}`;
+
+      li.appendChild(img);
+      li.appendChild(nameEl);
+      li.appendChild(priceEl);
+      listEl.appendChild(li);
+    });
+
+    totalEl.textContent = yen(order.total);
+  }
+
+  async function confirmPayPayOrder(merchantPaymentId) {
+    try {
+      listEl.innerHTML = "<li>PayPayの支払い確認中です...</li>";
+      totalEl.textContent = "0";
+
+      const res = await fetch("/paypay/confirm-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ merchantPaymentId }),
+      });
+
+      const data = await res.json();
+
+      console.log("PayPay confirm:", data);
+
+      if (!res.ok || !data.success) {
+        document.getElementById("success-title").textContent = "お支払いが完了していません";
+        document.getElementById("success-lead").textContent = "PayPayでの支払い完了を確認できませんでした。";
+        document.getElementById("success-note").textContent = "決済画面に戻るか、もう一度購入手続きを行ってください。";
+
+        const check = document.querySelector(".success-check");
+        if (check) {
+          check.textContent = "!";
+          check.classList.add("is-error");
+        }
+
+        listEl.innerHTML = `<li>状態：${data.status || "未完了"}</li>`;
+        totalEl.textContent = "0";
+        return;
+      }
+
+      localStorage.setItem("lastOrder", JSON.stringify({
+        createdAt: Date.now(),
+        items: data.order.items,
+        total: data.order.total,
+      }));
+
+      renderOrder(data.order);
+
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = "<li>PayPay確認中にエラーが発生しました。</li>";
+      totalEl.textContent = "0";
+    }
+  }
+
+  if (paypayOrderId) {
+    confirmPayPayOrder(paypayOrderId);
+  } else if (!lastOrder || !Array.isArray(lastOrder.items) || lastOrder.items.length === 0) {
+    renderMissing();
+  } else if (lastOrder.createdAt && (Date.now() - Number(lastOrder.createdAt) > TTL_MS)) {
+    localStorage.removeItem("lastOrder");
+    renderMissing();
+  } else {
+    renderOrder(lastOrder);
+  }
+
+  const backBtn = document.querySelector(".success-btn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      localStorage.removeItem("lastOrder");
+    });
+  }
+</script>
+
+</body>
+</html>

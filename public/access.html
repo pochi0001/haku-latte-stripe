@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <title>お問い合わせ | Haku Latte.</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="style.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="page-access">
+
+<header class="site-header">
+  <a href="/index.html" class="logo">Haku Latte.</a>
+
+  <nav>
+    <a href="/index.html">TOP</a>
+    <a href="/index.html#about">ABOUT</a>
+    <a href="/index.html#howto">HOW TO</a>
+    <a href="/index.html#product">PRODUCT</a>
+  </nav>
+</header>
+
+<main class="static-page">
+  <section class="static-card">
+    <h2>お問い合わせ</h2>
+
+    <form id="contact-form">
+      <label>
+        お名前
+        <input type="text" name="name" required>
+      </label>
+
+      <label>
+        メールアドレス
+        <input type="email" name="email" required>
+      </label>
+
+      <label>
+        お問い合わせ内容
+        <textarea name="message" rows="6" required></textarea>
+      </label>
+
+      <button type="submit">送信する</button>
+    </form>
+
+    <p id="form-status" class="form-status"></p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p class="site-name">Haku Latte.</p>
+
+  <nav class="sub-nav">
+    <ul class="sub-nav-menu">
+      <li><a href="tokusho.html">特定商取引法に基づく表記</a></li>
+      <li><a href="corporate.html">運営者情報</a></li>
+      <li><a href="access.html">お問い合わせ</a></li>
+    </ul>
+  </nav>
+</footer>
+
+  <script>
+    const form = document.getElementById("contact-form");
+    const status = document.getElementById("form-status");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      status.textContent = "送信中…";
+
+      const formData = {
+        name: form.name.value.trim(),
+        email: form.email.value.trim(),
+        message: form.message.value.trim()
+      };
+
+      try {
+        const res = await fetch("/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "送信に失敗しました");
+        }
+
+        status.textContent = "送信しました。お問い合わせありがとうございます。";
+        form.reset();
+
+      } catch (err) {
+        status.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
+        console.error(err);
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Haku Latte.｜カフェオレベース</title>
+  <meta name="description" content="Haku Latte. カフェオレ用・無糖のコーヒーベース。牛乳で割るだけで、すっきり飲める一杯に。">
+
+  <!-- <link rel="stylesheet" href="./style.css"/> -->
+   <link rel="stylesheet" href="./style.css?v=20260508-1" />
+</head>
+
+<body class="page-home">
+  <div class="grain"></div>
+
+  <header class="site-header">
+    <div class="logo">Haku Latte.</div>
+    <nav>
+      <a href="#about">ABOUT</a>
+      <a href="#howto">HOW TO</a>
+      <a href="#product">PRODUCT</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">CAFE AU LAIT BASE</p>
+        <h1>Haku<br>Latte.</h1>
+        <p class="lead">
+          牛乳で割るだけ。<br>
+          すっきり楽しむ、無糖のカフェオレベース。
+        </p>
+        <a href="#product" class="btn">商品を見る</a>
+      </div>
+
+      <div class="hero-visual">
+        <img src="./img/bottle.jpg" alt="Haku Latte.のボトル" class="bottle">
+        <img src="./img/frog.jpg" alt="" class="frog-bg">
+      </div>
+    </section>
+
+    <section id="about" class="section about">
+      <p class="section-label">ABOUT</p>
+      <h2>白と黒だけで、<br>まっすぐおいしい。</h2>
+      <p>
+        Haku Latte.は、カフェオレ用の無糖コーヒーベースです。
+        甘さを足さず、牛乳のまろやかさとコーヒーの香りを楽しめます。
+      </p>
+    </section>
+
+    <section id="howto" class="section howto">
+      <p class="section-label">HOW TO DRINK</p>
+      <h2>牛乳で4倍に薄めて。</h2>
+
+      <div class="cards">
+        <div class="card step01">
+          <h3>ICE</h3>
+          <p>グラスに氷を入れ、Haku Latte.と牛乳を注ぐだけ。</p>
+        </div>
+
+        <div class="card step02">
+          <h3>HOT</h3>
+          <p>温めた牛乳で割れば、やさしいホットカフェオレに。</p>
+        </div>
+
+        <div class="card step03">
+          <h3>ARRANGE</h3>
+          <p>アイスやスイーツにかけても楽しめます。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="product" class="section product">
+      <div class="product-image">
+        <img src="./img/label.jpg" alt="Haku Latte.の商品ラベル">
+      </div>
+
+      <div class="product-info">
+        <p class="section-label">PRODUCT</p>
+        <h2>Haku Latte.</h2>
+
+        <dl>
+          <div>
+            <dt>内容量</dt>
+            <dd>600ml</dd>
+          </div>
+          <div>
+            <dt>タイプ</dt>
+            <dd>カフェオレ用 / 無糖</dd>
+          </div>
+          <div>
+            <dt>保存方法</dt>
+            <dd>高温・直射日光を避けて保存</dd>
+          </div>
+        </dl>
+
+        <div id="product-buy-area"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p class="site-name">Haku Latte.</p>
+
+    <nav class="sub-nav">
+      <ul class="sub-nav-menu">
+        <li><a href="tokusho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="corporate.html">運営者情報</a></li>
+        <li><a href="access.html">お問い合わせ</a></li>
+      </ul>
+    </nav>
+  </footer>
+
+  <script>
+    function getCart() {
+      return JSON.parse(localStorage.getItem("cart") || "[]");
+    }
+
+    function saveCart(cart) {
+      localStorage.setItem("cart", JSON.stringify(cart));
+    }
+
+    function getCartCount() {
+      const cart = getCart();
+      return cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
+    }
+
+    function addToCart(product) {
+      const cart = getCart();
+      const existing = cart.find(item => Number(item.id) === Number(product.id));
+
+      if (existing) {
+        existing.qty = Number(existing.qty || 1) + 1;
+      } else {
+        cart.push({
+          id: Number(product.id),
+          name: product.name,
+          price: Number(product.price),
+          qty: 1,
+        });
+      }
+
+      saveCart(cart);
+      renderCartButton();
+      alert("カートに追加しました！");
+    }
+
+    function renderCartButton() {
+      const cartBtn = document.getElementById("cart-view-btn");
+      if (!cartBtn) return;
+      cartBtn.textContent = `カートを見る（${getCartCount()}）`;
+    }
+
+    async function loadProduct() {
+      const area = document.getElementById("product-buy-area");
+
+      try {
+        const res = await fetch("/products", { cache: "no-store" });
+        const products = await res.json();
+
+        if (!Array.isArray(products) || products.length === 0) {
+          area.innerHTML = `
+            <button class="buy-btn" type="button" disabled>販売準備中</button>
+            <p class="note">※商品情報がまだ登録されていません。</p>
+          `;
+          return;
+        }
+
+        const p = products[0];
+        const soldOut = Number(p.stock || 0) <= 0;
+
+        area.innerHTML = `
+          <div class="buy-panel">
+            <h3>${p.name}</h3>
+            <p class="buy-price">¥${Number(p.price || 0).toLocaleString()}</p>
+            <p class="buy-stock">${soldOut ? "SOLD OUT" : `在庫：${p.stock}`}</p>
+
+            ${
+              soldOut
+                ? `<button class="buy-btn" type="button" disabled>SOLD OUT</button>`
+                : `<button class="buy-btn" id="add-cart-btn" type="button">カートに入れる</button>`
+            }
+
+            <a href="/checkout.html" class="cart-link" id="cart-view-btn">
+              カートを見る（${getCartCount()}）
+            </a>
+          </div>
+        `;
+
+        const addBtn = document.getElementById("add-cart-btn");
+        if (addBtn) {
+          addBtn.addEventListener("click", () => {
+            addToCart({
+              id: p.id,
+              name: p.name,
+              price: p.price,
+            });
+          });
+        }
+
+      } catch (err) {
+        console.error(err);
+        area.innerHTML = `
+          <button class="buy-btn" type="button" disabled>読み込み失敗</button>
+          <p class="note">※商品情報の取得に失敗しました。</p>
+        `;
+      }
+    }
+
+    loadProduct();
+  </script>
+</body>
+</html>
