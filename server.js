@@ -199,7 +199,7 @@ app.post("/contact", async (req, res) => {
   try {
     await transporter.sendMail({
       from: `"Haku Latte. Contact" <${process.env.MAIL_USER}>`,
-      to: "pochi00kou00@gmail.com",
+      to: "info.vfes0220@gmail.com",
       replyTo: email,
       subject: "【Haku Latte.】お問い合わせ",
       text: `
@@ -611,15 +611,17 @@ app.post("/payment", async (req, res) => {
     // メール（失敗しても決済は成功扱い）
     try {
       await transporter.sendMail({
-        from: process.env.GMAIL_USER,
-        to: process.env.EMAIL_TO,
-        subject: "🎉 Square支払いが完了しました！",
+        from: `"Haku Latte. Order" <${process.env.MAIL_USER}>`,
+        to: "info.vfes0220@gmail.com",
+        subject: "【Haku Latte.】Square支払いが完了しました",
         text:
           `購入者: ${name}\n` +
           `メール: ${email}\n` +
           `住所: ${address}\n` +
           `電話: ${phone}\n\n` +
-          `購入内容:\n- ${itemsDetailed.map((it) => `${it.name} ¥${it.price} ×${it.qty}`).join("\n- ")}\n\n` +
+          `購入内容:\n- ${itemsDetailed
+            .map((it) => `${it.name} ¥${it.price} ×${it.qty}`)
+            .join("\n- ")}\n\n` +
           `合計: ¥${total}\n` +
           `決済ID: ${payment.id}\n`,
       });

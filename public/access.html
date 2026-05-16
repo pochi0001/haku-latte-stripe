@@ -3,17 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  <title>お問い合わせ | Haku Latte.</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>お問い合わせ | Haku Latte.</title>
 
   <link rel="stylesheet" href="style.css">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 </head>
 
 <body class="page-access">
@@ -31,9 +28,17 @@
 
 <main class="static-page">
   <section class="static-card">
+
+    <p class="section-label">CONTACT</p>
     <h2>お問い合わせ</h2>
 
+    <p class="contact-lead">
+      商品・ご注文・配送に関するお問い合わせは、
+      下記フォームよりお気軽にご連絡ください。
+    </p>
+
     <form id="contact-form">
+
       <label>
         お名前
         <input type="text" name="name" required>
@@ -50,60 +55,82 @@
       </label>
 
       <button type="submit">送信する</button>
+
     </form>
 
     <p id="form-status" class="form-status"></p>
+
+    <p class="contact-note">
+      メールでのお問い合わせ：<br>
+      <a href="mailto:info.vfes0220@gmail.com">
+        info.vfes0220@gmail.com
+      </a>
+    </p>
+
   </section>
 </main>
 
 <footer class="site-footer">
+
   <p class="site-name">Haku Latte.</p>
 
   <nav class="sub-nav">
     <ul class="sub-nav-menu">
       <li><a href="tokusho.html">特定商取引法に基づく表記</a></li>
       <li><a href="corporate.html">運営者情報</a></li>
+      <li><a href="privacy.html">プライバシーポリシー</a></li>
       <li><a href="access.html">お問い合わせ</a></li>
     </ul>
   </nav>
+
 </footer>
 
-  <script>
-    const form = document.getElementById("contact-form");
-    const status = document.getElementById("form-status");
+<script>
+  const form = document.getElementById("contact-form");
+  const status = document.getElementById("form-status");
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      status.textContent = "送信中…";
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      const formData = {
-        name: form.name.value.trim(),
-        email: form.email.value.trim(),
-        message: form.message.value.trim()
-      };
+    status.textContent = "送信中…";
 
-      try {
-        const res = await fetch("/contact", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData)
-        });
+    const formData = {
+      name: form.name.value.trim(),
+      email: form.email.value.trim(),
+      message: form.message.value.trim()
+    };
 
-        const data = await res.json();
+    try {
 
-        if (!res.ok) {
-          throw new Error(data.error || "送信に失敗しました");
-        }
+      const res = await fetch("/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(formData)
+      });
 
-        status.textContent = "送信しました。お問い合わせありがとうございます。";
-        form.reset();
+      const data = await res.json();
 
-      } catch (err) {
-        status.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
-        console.error(err);
+      if (!res.ok) {
+        throw new Error(data.error || "送信に失敗しました");
       }
-    });
-  </script>
+
+      status.textContent =
+        "送信しました。お問い合わせありがとうございます。";
+
+      form.reset();
+
+    } catch (err) {
+
+      status.textContent =
+        "送信に失敗しました。時間をおいて再度お試しください。";
+
+      console.error(err);
+
+    }
+  });
+</script>
 
 </body>
 </html>

@@ -982,7 +982,8 @@ section,
 ============================== */
 .page-legal,
 .page-corporate,
-.page-access {
+.page-access,
+.page-privacy {
   padding-top: 110px;
 }
 
@@ -1199,7 +1200,8 @@ section,
 ============================== */
 .page-legal,
 .page-corporate,
-.page-access {
+.page-access,
+.page-privacy {
   padding-top: 110px;
 }
 
