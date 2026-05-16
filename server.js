@@ -155,25 +155,11 @@ async function initDb() {
 
   if (shouldSeed && count === 0) {
     await db.run("INSERT INTO products (name, price, stock) VALUES (?,?,?)", [
-      "Trainer free size",
-      8500,
-      10,
-    ]);
-    await db.run("INSERT INTO products (name, price, stock) VALUES (?,?,?)", [
-      "Random Sticker",
-      700,
-      30,
-    ]);
-    await db.run("INSERT INTO products (name, price, stock) VALUES (?,?,?)", [
-      "Random Sticker ⑤枚セット",
+      "Haku Latte.",
       3000,
-      10,
+      100,
     ]);
-    await db.run("INSERT INTO products (name, price, stock) VALUES (?,?,?)", [
-      "Random Sticker ⑩枚セット",
-      5500,
-      10,
-    ]);
+
     console.log("✅ DB seeded (SEED_DB=true)");
   }
 }
