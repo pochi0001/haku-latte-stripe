@@ -1369,3 +1369,30 @@ section,
   box-shadow: none;
   transform: translate(4px, 4px);
 }
+
+.cart-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 9999;
+
+  padding: 14px 22px;
+  border: 2px solid #191817;
+  border-radius: 999px;
+  background: #ffcf7a;
+  color: #191817;
+
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 5px 5px 0 #191817;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+
+.cart-toast.is-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

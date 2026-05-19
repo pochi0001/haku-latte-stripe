@@ -145,7 +145,7 @@
 
       saveCart(cart);
       renderCartButton();
-      alert("カートに追加しました！");
+      showToast("カートに追加しました");
     }
 
     function renderCartButton() {
@@ -208,6 +208,24 @@
           <p class="note">※商品情報の取得に失敗しました。</p>
         `;
       }
+    }
+
+    function showToast(message) {
+      let toast = document.getElementById("cart-toast");
+
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "cart-toast";
+        toast.className = "cart-toast";
+        document.body.appendChild(toast);
+      }
+
+      toast.textContent = message;
+      toast.classList.add("is-show");
+
+      setTimeout(() => {
+        toast.classList.remove("is-show");
+      }, 1800);
     }
 
     loadProduct();
