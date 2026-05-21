@@ -648,36 +648,15 @@ const PAYPAY_MERCHANT_ID = (process.env.PAYPAY_MERCHANT_ID || "").trim();
 const PAYPAY_BASE_URL =
   process.env.PAYPAY_BASE_URL || "https://stg-api.paypay.ne.jp";
 
-
-
-
-
-
-console.log("PayPay env check:", {
-  baseUrl: PAYPAY_BASE_URL,
-  apiKeyLength: PAYPAY_API_KEY.length,
-  apiKeyLast4: PAYPAY_API_KEY.slice(-4),
-  secretLength: PAYPAY_API_SECRET.length,
-  merchantId: PAYPAY_MERCHANT_ID,
-});
-
-
-
-
-
-
-
-
-
-
-
 // 認証ヘッダー生成
 function createPayPayAuthHeader(method, path, body = "") {
   const nonce = crypto.randomBytes(8).toString("hex");
   const epoch = Math.floor(Date.now() / 1000).toString();
 
   const hasBody = body && body.length > 0;
-  const contentType = hasBody ? "application/json" : "empty";
+  const contentType = hasBody
+  ? "application/json;charset=UTF-8;"
+  : "empty";
 
   const bodyHash = hasBody
     ? crypto
@@ -776,8 +755,7 @@ app.post("/paypay/create-payment", async (req, res) => {
         method: "POST",
         headers: {
           Authorization: createPayPayAuthHeader("POST", path, body),
-          "Content-Type": "application/json",
-          "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
+          "Content-Type": "application/json;charset=UTF-8;",
         },
         body,
       }
@@ -882,7 +860,6 @@ app.post("/paypay/confirm-payment", async (req, res) => {
       method: "GET",
       headers: {
         Authorization: createPayPayAuthHeader("GET", path),
-        "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
       },
     });
 
