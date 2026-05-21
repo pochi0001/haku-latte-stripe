@@ -642,8 +642,9 @@ app.post("/payment", async (req, res) => {
 // PayPay
 // ==============================
 
-const PAYPAY_API_KEY = process.env.PAYPAY_API_KEY;
-const PAYPAY_API_SECRET = process.env.PAYPAY_API_SECRET;
+const PAYPAY_API_KEY = (process.env.PAYPAY_API_KEY || "").trim();
+const PAYPAY_API_SECRET = (process.env.PAYPAY_API_SECRET || "").trim();
+const PAYPAY_MERCHANT_ID = (process.env.PAYPAY_MERCHANT_ID || "").trim();
 const PAYPAY_BASE_URL =
   process.env.PAYPAY_BASE_URL || "https://stg-api.paypay.ne.jp";
 
@@ -753,6 +754,7 @@ app.post("/paypay/create-payment", async (req, res) => {
         headers: {
           Authorization: createPayPayAuthHeader("POST", path, body),
           "Content-Type": "application/json;charset=UTF-8;",
+          "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
         },
         body,
       }
@@ -857,6 +859,7 @@ app.post("/paypay/confirm-payment", async (req, res) => {
       method: "GET",
       headers: {
         Authorization: createPayPayAuthHeader("GET", path),
+        "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
       },
     });
 
