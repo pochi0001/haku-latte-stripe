@@ -655,7 +655,7 @@ function createPayPayAuthHeader(method, path, body = "") {
 
   const hasBody = body && body.length > 0;
   const contentType = hasBody
-  ? "application/json;charset=UTF-8;"
+  ? "application/json"
   : "empty";
 
   const bodyHash = hasBody
@@ -755,7 +755,7 @@ app.post("/paypay/create-payment", async (req, res) => {
         method: "POST",
         headers: {
           Authorization: createPayPayAuthHeader("POST", path, body),
-          "Content-Type": "application/json;charset=UTF-8;",
+          "Content-Type": "application/json",
         },
         body,
       }
