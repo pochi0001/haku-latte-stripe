@@ -663,14 +663,13 @@ function createPayPayAuthHeader(method, path, body = "") {
         .digest("base64")
     : "empty";
 
-  const hmacData = [
-    path,
-    method,
-    nonce,
-    epoch,
-    contentType,
-    bodyHash,
-  ].join("\n");
+  const hmacData =
+  path + "\n" +
+  method + "\n" +
+  nonce + "\n" +
+  epoch + "\n" +
+  contentType + "\n" +
+  bodyHash + "\n";
 
   const signature = crypto
     .createHmac("sha256", PAYPAY_API_SECRET)
