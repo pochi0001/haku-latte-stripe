@@ -754,7 +754,6 @@ app.post("/paypay/create-payment", async (req, res) => {
         headers: {
           Authorization: createPayPayAuthHeader("POST", path, body),
           "Content-Type": "application/json",
-          "X-ASSUME-MERCHANT": process.env.PAYPAY_MERCHANT_ID,
         },
         body,
       }
@@ -859,7 +858,6 @@ app.post("/paypay/confirm-payment", async (req, res) => {
       method: "GET",
       headers: {
         Authorization: createPayPayAuthHeader("GET", path),
-        "X-ASSUME-MERCHANT": process.env.PAYPAY_MERCHANT_ID,
       },
     });
 
