@@ -665,12 +665,12 @@ function createPayPayAuthHeader(method, path, body = "") {
     : "empty";
 
   const hmacData =
-    path + "\n" +
-    method + "\n" +
-    nonce + "\n" +
-    epoch + "\n" +
-    contentType + "\n" +
-    bodyHash;
+  path + "\n" +
+  method + "\n" +
+  nonce + "\n" +
+  epoch + "\n" +
+  contentType + "\n" +
+  bodyHash + "\n";
 
   const signature = crypto
     .createHmac("sha256", PAYPAY_API_SECRET)
@@ -756,12 +756,13 @@ app.post("/paypay/create-payment", async (req, res) => {
       path,
       body: payload,
       headers: {
-        Authorization: authHeader.replace(
-          PAYPAY_API_KEY,
-          PAYPAY_API_KEY.slice(0, 4) + "****" + PAYPAY_API_KEY.slice(-4)
-        ),
-        "Content-Type": "application/json;charset=UTF-8;",
-      },
+      Authorization: authHeader.replace(
+        PAYPAY_API_KEY,
+        PAYPAY_API_KEY.slice(0, 4) + "****" + PAYPAY_API_KEY.slice(-4)
+      ),
+      "Content-Type": "application/json;charset=UTF-8;",
+      "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
+    },
     });
 
     const response = await fetch(PAYPAY_BASE_URL + path, {
@@ -769,10 +770,10 @@ app.post("/paypay/create-payment", async (req, res) => {
       headers: {
         Authorization: authHeader,
         "Content-Type": "application/json;charset=UTF-8;",
+        "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
       },
       body,
     });
-    // const data = await response.json();
 
     // console.log("PayPay response:", data);
     const data = await response.json();
@@ -871,6 +872,7 @@ app.post("/paypay/confirm-payment", async (req, res) => {
       method: "GET",
       headers: {
         Authorization: createPayPayAuthHeader("GET", path),
+        "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
       },
     });
 
