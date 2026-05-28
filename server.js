@@ -658,13 +658,12 @@ function createPayPayAuthHeader(method, path, body = "") {
   ? "application/json"
   : "empty";
 
-  const bodyHash = hasBody
-    ? crypto
-        .createHash("md5")
-        .update(contentType)
-        .update(body)
-        .digest("base64")
-    : "empty";
+    const bodyHash = hasBody
+      ? crypto
+          .createHash("md5")
+          .update(body)
+          .digest("base64")
+      : "empty";
 
   const hmacData =
   path + "\n" +
