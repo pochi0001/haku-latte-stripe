@@ -856,11 +856,36 @@ app.post("/paypay/confirm-payment", async (req, res) => {
 
     const path = `/v2/codes/payments/${merchantPaymentId}`;
 
-    const response = await fetch(PAYPAY_BASE_URL + path, {
-      method: "GET",
+
+
+
+    const authHeader = createPayPayAuthHeader("POST", path, body);
+
+    console.log("PayPay debug request:", {
+      datetimeJST: new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
+      method: "POST",
+      url: PAYPAY_BASE_URL + path,
+      path,
+      body: payload,
       headers: {
-        Authorization: createPayPayAuthHeader("GET", path),
+        Authorization: authHeader.replace(PAYPAY_API_KEY, PAYPAY_API_KEY.slice(0, 4) + "****" + PAYPAY_API_KEY.slice(-4)),
+        "Content-Type": "application/json",
       },
+    });
+
+
+
+
+
+
+
+    const response = await fetch(PAYPAY_BASE_URL + path, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      body,
     });
 
     const data = await response.json();
