@@ -1474,3 +1474,10 @@ section,
     text-align: center;
   }
 }
+
+@media (max-width: 820px){
+  .hero-visual img{
+  width: 95%;
+  max-width: 340px;
+}
+}
