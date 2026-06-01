@@ -654,23 +654,22 @@ function createPayPayAuthHeader(method, path, body = "") {
   const epoch = Math.floor(Date.now() / 1000).toString();
 
   const hasBody = body && body.length > 0;
-  const contentType = hasBody ? "application/json;charset=UTF-8;" : "empty";
+  const contentType = hasBody ? "application/json" : "empty";
 
   const bodyHash = hasBody
     ? crypto
         .createHash("md5")
-        .update(contentType)
         .update(body)
         .digest("base64")
     : "empty";
 
   const hmacData =
-  path + "\n" +
-  method + "\n" +
-  nonce + "\n" +
-  epoch + "\n" +
-  contentType + "\n" +
-  bodyHash + "\n";
+    path + "\n" +
+    method + "\n" +
+    nonce + "\n" +
+    epoch + "\n" +
+    contentType + "\n" +
+    bodyHash;
 
   const signature = crypto
     .createHmac("sha256", PAYPAY_API_SECRET)
@@ -760,7 +759,7 @@ app.post("/paypay/create-payment", async (req, res) => {
         PAYPAY_API_KEY,
         PAYPAY_API_KEY.slice(0, 4) + "****" + PAYPAY_API_KEY.slice(-4)
       ),
-      "Content-Type": "application/json;charset=UTF-8;",
+      "Content-Type": "application/json",
       "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
     },
     });
@@ -769,7 +768,7 @@ app.post("/paypay/create-payment", async (req, res) => {
       method: "POST",
       headers: {
         Authorization: authHeader,
-        "Content-Type": "application/json;charset=UTF-8;",
+        "Content-Type": "application/json",
         "X-ASSUME-MERCHANT": PAYPAY_MERCHANT_ID,
       },
       body,
