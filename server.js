@@ -659,6 +659,7 @@ function createPayPayAuthHeader(method, path, body = "") {
   const bodyHash = hasBody
     ? crypto
         .createHash("md5")
+        .update(contentType)
         .update(body)
         .digest("base64")
     : "empty";
@@ -669,7 +670,7 @@ function createPayPayAuthHeader(method, path, body = "") {
     nonce + "\n" +
     epoch + "\n" +
     contentType + "\n" +
-    bodyHash;
+    bodyHash + "\n";
 
   const signature = crypto
     .createHmac("sha256", PAYPAY_API_SECRET)
