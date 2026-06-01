@@ -665,12 +665,12 @@ function createPayPayAuthHeader(method, path, body = "") {
     : "empty";
 
   const hmacData =
-    path + "\n" +
-    method + "\n" +
-    nonce + "\n" +
-    epoch + "\n" +
-    contentType + "\n" +
-    bodyHash + "\n";
+      path + "\n" +
+      method + "\n" +
+      nonce + "\n" +
+      epoch + "\n" +
+      contentType + "\n" +
+      bodyHash + "\n";
 
   const signature = crypto
     .createHmac("sha256", PAYPAY_API_SECRET)
