@@ -937,7 +937,7 @@ app.post("/paypay/confirm-payment", async (req, res) => {
         ]
       );
 
-      await db.run(
+            await db.run(
         "UPDATE paypay_pending_orders SET status = ? WHERE merchant_payment_id = ?",
         ["COMPLETED", merchantPaymentId]
       );
@@ -946,6 +946,27 @@ app.post("/paypay/confirm-payment", async (req, res) => {
     } catch (e) {
       await db.exec("ROLLBACK");
       throw e;
+    }
+
+    // メール（失敗してもPayPay決済は成功扱い）
+    try {
+      await transporter.sendMail({
+        from: `"Haku Latte. Order" <${process.env.MAIL_USER}>`,
+        to: "info.vfes0220@gmail.com",
+        subject: "【Haku Latte.】PayPay支払いが完了しました",
+        text:
+          `購入者: ${pending.name}\n` +
+          `メール: ${pending.email}\n` +
+          `住所: ${pending.address}\n` +
+          `電話: ${pending.phone}\n\n` +
+          `購入内容:\n- ${itemsDetailed
+            .map((it) => `${it.name} ¥${it.price} ×${it.qty}`)
+            .join("\n- ")}\n\n` +
+          `合計: ¥${total}\n` +
+          `PayPay注文ID: ${merchantPaymentId}\n`,
+      });
+    } catch (mailErr) {
+      console.error("メール送信失敗（PayPay決済は成功）:", mailErr);
     }
 
     return res.json({
