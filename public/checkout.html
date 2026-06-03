@@ -233,13 +233,7 @@
         <h4>${item.name}</h4>
         <p class="price">¥${Number(item.price).toLocaleString()}</p>
 
-        ${
-          p
-            ? `<p class="stock ${soldOut ? "soldout" : ""}">
-                ${soldOut ? "在庫切れ" : `在庫：${p.stock}個`}
-              </p>`
-            : ""
-        }
+        
 
         <div class="qty-control">
           <button class="qty-btn" type="button" onclick="changeQty(${index}, -1)" aria-label="減らす">−</button>
