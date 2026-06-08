@@ -43,6 +43,144 @@ const IMG_DIR = process.env.IMG_DIR || path.join(process.cwd(), "public", "img")
 // Express
 // ==============================
 const app = express();
+
+
+
+
+
+
+app.post(
+  "/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    let event;
+
+    try {
+      const sig = req.headers["stripe-signature"];
+
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error("❌ Stripe webhook signature error:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+console.log("✅ Stripe webhook:", event.type);
+
+try {
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const sessionId = session.id;
+
+    const db = await dbPromise;
+
+    const pending = await db.get(
+      "SELECT * FROM stripe_pending_orders WHERE session_id = ?",
+      [sessionId]
+    );
+
+    if (!pending) {
+      console.warn("⚠️ Stripe pending order not found:", sessionId);
+      return res.json({ received: true });
+    }
+
+    if (pending.status === "COMPLETED") {
+      return res.json({ received: true, alreadySaved: true });
+    }
+
+    const itemsDetailed = JSON.parse(pending.items_json);
+    const total = Number(pending.amount);
+
+    await db.exec("BEGIN IMMEDIATE");
+
+    try {
+      for (const it of itemsDetailed) {
+        const p = await db.get("SELECT * FROM products WHERE id = ?", [it.id]);
+
+        if (!p || Number(p.stock) < Number(it.qty)) {
+          throw new Error(`在庫不足です: ${it.name}`);
+        }
+      }
+
+      for (const it of itemsDetailed) {
+        await db.run(
+          "UPDATE products SET stock = stock - ? WHERE id = ?",
+          [Number(it.qty), Number(it.id)]
+        );
+      }
+
+      const summary = itemsDetailed
+        .map((it) => `${it.name}¥${it.price}×${it.qty}`)
+        .join(" / ");
+
+      await db.run(
+        `INSERT INTO payments
+         (amount, description, created_at, method, name, address, phone, email, items_json, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          total,
+          `ORDER: ${summary}`,
+          new Date().toISOString(),
+          `Stripe Checkout sessionId=${sessionId}`,
+          pending.name,
+          pending.address,
+          pending.phone,
+          pending.email,
+          pending.items_json,
+          "PAID",
+        ]
+      );
+
+      await db.run(
+        "UPDATE stripe_pending_orders SET status = ? WHERE session_id = ?",
+        ["COMPLETED", sessionId]
+      );
+
+      await db.exec("COMMIT");
+    } catch (e) {
+      await db.exec("ROLLBACK");
+      throw e;
+    }
+
+    try {
+      await transporter.sendMail({
+        from: `"Haku Latte. Order" <${process.env.MAIL_USER}>`,
+        to: "info.vfes0220@gmail.com",
+        subject: "【Haku Latte.】Stripe支払いが完了しました",
+        text:
+          `購入者: ${pending.name}\n` +
+          `メール: ${pending.email}\n` +
+          `住所: ${pending.address}\n` +
+          `電話: ${pending.phone}\n\n` +
+          `購入内容:\n- ${itemsDetailed
+            .map((it) => `${it.name} ¥${it.price} ×${it.qty}`)
+            .join("\n- ")}\n\n` +
+          `合計: ¥${total}\n` +
+          `Stripe Session ID: ${sessionId}\n`,
+      });
+    } catch (mailErr) {
+      console.error("メール送信失敗（Stripe決済は成功）:", mailErr);
+    }
+  }
+
+  return res.json({ received: true });
+
+} catch (err) {
+  console.error("❌ Stripe webhook process error:", err);
+  return res.status(500).json({ error: err.message });
+}
+  }
+);
+
+
+
+
+
+
+
 app.use(express.json());
 
 // Renderはプロキシ(HTTPS終端)配下
