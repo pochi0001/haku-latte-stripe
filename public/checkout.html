@@ -70,13 +70,19 @@
     <div id="payment-status-container" style="margin-top:8px;"></div>
 
     <div class="pay-buttons">
-      <button id="square-pay" class="square-btn" type="button">
+
+      <button id="stripe-pay" type="button">
+        カード・コンビニで支払う
+      </button>
+
+      <button id="square-pay" type="button">
         Squareで支払う
       </button>
 
-      <button id="paypay-pay" class="paypay-btn" type="button">
+      <button id="paypay-pay" type="button">
         PayPayで支払う
       </button>
+
     </div>
 
   </main>
@@ -333,6 +339,7 @@
   }
 
   function updatePayButtonsState() {
+    const stripeBtn = document.getElementById("stripe-pay");
     const squareBtn = document.getElementById("square-pay");
     const paypayBtn = document.getElementById("paypay-pay");
     const guide = document.getElementById("checkout-guide");
@@ -344,6 +351,7 @@
 
     const ok = hasCart && customerOk && stockOk;
 
+    if (stripeBtn) stripeBtn.disabled = !ok;
     if (squareBtn) squareBtn.disabled = !ok;
     if (paypayBtn) paypayBtn.disabled = !ok;
 
@@ -359,6 +367,8 @@
       }
     }
   }
+
+
 
 
   async function onPayClick() {
@@ -553,7 +563,75 @@ async function onPayPayClick() {
 
 
 
+async function onStripeClick() {
+  try {
+    const cart = getCart();
 
+    if (!cart || cart.length === 0) {
+      alert("カートが空です");
+      return;
+    }
+
+    const name = document.getElementById("customer-name").value.trim();
+    const address = document.getElementById("customer-address").value.trim();
+    const email = document.getElementById("customer-email").value.trim();
+    const phone = document.getElementById("customer-phone").value.trim();
+
+    if (!name || !address || !email || !phone) {
+      alert("お届け先情報をすべて入力してください。");
+      return;
+    }
+
+    await fetchProducts();
+
+    const stockErrors = validateCartStock(cart);
+
+    if (stockErrors.length > 0) {
+      alert(stockErrors.join("\n"));
+      loadCart();
+      return;
+    }
+
+    const res = await fetch("/stripe/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cart,
+        name,
+        address,
+        email,
+        phone,
+      }),
+    });
+
+    const data = await res.json();
+
+    console.log("Stripe create:", data);
+
+    if (!res.ok || !data.success) {
+      alert(data.error || "Stripe決済開始に失敗しました");
+      return;
+    }
+
+    localStorage.setItem(
+      "lastOrder",
+      JSON.stringify({
+        createdAt: Date.now(),
+        items: data.itemsDetailed,
+        total: data.total,
+        method: "Stripe",
+      })
+    );
+
+    window.location.href = data.url;
+
+  } catch (err) {
+    console.error(err);
+    alert("Stripeエラー");
+  }
+}
 
 
 
@@ -589,6 +667,12 @@ async function onPayPayClick() {
     const squareBtn = document.getElementById("square-pay");
     if (squareBtn) {
       squareBtn.addEventListener("click", onPayClick);
+    }
+
+    // ★追加
+    const stripeBtn = document.getElementById("stripe-pay");
+    if (stripeBtn) {
+      stripeBtn.addEventListener("click", onStripeClick);
     }
 
     // ⑥ PayPayボタンにイベント追加

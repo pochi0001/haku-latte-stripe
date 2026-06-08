@@ -12,12 +12,13 @@
     "sharp": "^0.34.5",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "square": "^43.2.1"
+    "square": "^43.2.1",
+    "stripe": "^22.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
   },
   "scripts": {
-  "dev": "nodemon server.js"
-}
+    "dev": "nodemon server.js"
+  }
 }

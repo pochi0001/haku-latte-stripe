@@ -14,8 +14,14 @@ import sharp from "sharp";
 import crypto from "crypto";
 import fetch from "node-fetch";
 
+import Stripe from "stripe";
 
 dotenv.config(); // ✅ 必ず最初！
+
+const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY
+);
+
 
 // ==============================
 // 基本設定
@@ -138,6 +144,29 @@ async function initDb() {
 
 
 
+
+
+    CREATE TABLE IF NOT EXISTS stripe_pending_orders (
+      session_id TEXT PRIMARY KEY,
+
+      amount INTEGER NOT NULL,
+      items_json TEXT NOT NULL,
+
+      name TEXT,
+      address TEXT,
+      phone TEXT,
+      email TEXT,
+
+      status TEXT NOT NULL DEFAULT 'CREATED',
+
+      created_at TEXT NOT NULL
+    );
+
+
+
+
+
+
   `);
 
   // ✅ items_json を後付け（既存DBでも壊さない）
@@ -147,6 +176,24 @@ async function initDb() {
   } catch (_) {
     // 既にあればOK
   }
+
+
+
+  try {
+    await db.exec(`
+      ALTER TABLE payments
+      ADD COLUMN status TEXT
+    `);
+    console.log("✅ payments.status added");
+  } catch (_) {
+    // 既にあればOK
+  }
+
+
+
+
+
+
 
   // ✅ SEED_DB=true のときだけ、productsが空なら初期商品を入れる
   const shouldSeed = (process.env.SEED_DB || "").toLowerCase() === "true";
@@ -261,6 +308,129 @@ app.get("/products", async (_req, res) => {
     res.status(500).json({ error: "DB error", details: e.message });
   }
 });
+
+
+
+app.post("/stripe/create-checkout-session", async (req, res) => {
+  try {
+    const { cart, name, address, email, phone } = req.body || {};
+
+    if (!name || !address || !email || !phone) {
+      return res.status(400).json({ error: "お届け先情報が不足しています" });
+    }
+
+    if (!Array.isArray(cart) || cart.length === 0) {
+      return res.status(400).json({ error: "カートが空です" });
+    }
+
+    const db = await dbPromise;
+
+    const ids = [...new Set(cart.map((x) => Number(x.id)))];
+    const placeholders = ids.map(() => "?").join(",");
+
+    const rows = await db.all(
+      `SELECT * FROM products WHERE id IN (${placeholders})`,
+      ids
+    );
+
+    const rowMap = new Map(rows.map((p) => [p.id, p]));
+
+    let total = 0;
+    const line_items = [];
+
+    const itemsDetailed = cart.map((item) => {
+      const p = rowMap.get(Number(item.id));
+
+      if (!p) {
+        throw new Error("商品が存在しません");
+      }
+
+      const qty = Math.max(1, Number(item.qty || 1));
+
+      total += Number(p.price) * qty;
+
+      line_items.push({
+        price_data: {
+          currency: "jpy",
+          product_data: {
+            name: p.name,
+          },
+          unit_amount: Number(p.price),
+        },
+        quantity: qty,
+      });
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: Number(p.price),
+        qty,
+      };
+    });
+
+    if (!Number.isFinite(total) || total <= 0) {
+      return res.status(400).json({ error: "合計金額が不正です" });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+
+      payment_method_types: ["card", "konbini"],
+
+      customer_email: email,
+
+      line_items,
+
+      metadata: {
+        name,
+        address,
+        phone,
+        email,
+      },
+
+      success_url:
+        process.env.SUCCESS_URL +
+        "?session_id={CHECKOUT_SESSION_ID}",
+
+      cancel_url: process.env.CANCEL_URL,
+    });
+
+    await db.run(
+      `INSERT INTO stripe_pending_orders
+       (session_id, amount, items_json, name, address, phone, email, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        session.id,
+        total,
+        JSON.stringify(itemsDetailed),
+        name,
+        address,
+        phone,
+        email,
+        "CREATED",
+        new Date().toISOString(),
+      ]
+    );
+
+    return res.json({
+      success: true,
+      url: session.url,
+      sessionId: session.id,
+      itemsDetailed,
+      total,
+    });
+
+  } catch (err) {
+    console.error("❌ Stripe create error:", err);
+
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+});
+
+
+
 
 // ==============================
 // ✅ 管理ページ（外部ファイル版）
