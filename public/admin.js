@@ -200,7 +200,15 @@ async function loadOrders(){
   let html = `
     <table>
       <thead>
-        <tr><th>日時</th><th>購入者</th><th>連絡先</th><th>内容</th><th>金額</th><th>決済</th></tr>
+        <tr>
+          <th>日時</th>
+          <th>購入者</th>
+          <th>連絡先</th>
+          <th>内容</th>
+          <th>金額</th>
+          <th>状態</th>
+          <th>決済</th>
+        </tr>
       </thead>
       <tbody>
   `;
@@ -213,6 +221,7 @@ async function loadOrders(){
         <td>${escHtml(o.email || "")}<div class="muted">${escHtml(o.phone || "")}</div></td>
         <td>${safeItemsHtml(o)}</td>
         <td>${yen(o.amount)}</td>
+        <td>${escHtml(o.status || "")}</td>
         <td class="muted">${escHtml(o.method || "")}</td>
       </tr>
     `;
