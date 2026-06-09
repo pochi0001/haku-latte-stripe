@@ -221,7 +221,17 @@ async function loadOrders(){
         <td>${escHtml(o.email || "")}<div class="muted">${escHtml(o.phone || "")}</div></td>
         <td>${safeItemsHtml(o)}</td>
         <td>${yen(o.amount)}</td>
-        <td>${escHtml(o.status || "")}</td>
+        <td>
+          <span style="
+            padding:4px 8px;
+            border-radius:6px;
+            font-weight:bold;
+            color:white;
+            background:${o.status === "PAID" ? "#16a34a" : "#f59e0b"};
+          ">
+            ${escHtml(o.status || "")}
+          </span>
+        </td>
         <td class="muted">${escHtml(o.method || "")}</td>
       </tr>
     `;
