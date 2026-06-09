@@ -43,10 +43,10 @@
 
 
 
-    <h3>お届け先情報    <p id="checkout-guide" class="checkout-guide">
+    <h3>お届け先情報</h3>
+    <p id="checkout-guide" class="checkout-guide">
       お届け先情報を入力すると、決済ボタンを押せるようになります。
     </p>
-    </h3>
     <div id="customer-info">
       <label>名前
         <input type="text" id="customer-name" required />
@@ -65,19 +65,19 @@
       </label>
     </div>
 
-    <h3>カード情報</h3>
+    <!-- <h3>カード情報</h3>
     <div id="card-container"></div>
-    <div id="payment-status-container" style="margin-top:8px;"></div>
+    <div id="payment-status-container" style="margin-top:8px;"></div> -->
 
     <div class="pay-buttons">
 
       <button id="stripe-pay" type="button">
-        カード・コンビニで支払う
+        カード・コンビニ決済
       </button>
 
-      <button id="square-pay" type="button">
+      <!-- <button id="square-pay" type="button">
         Squareで支払う
-      </button>
+      </button> -->
 
       <button id="paypay-pay" type="button">
         PayPayで支払う
@@ -125,40 +125,19 @@
         </div>
 
     <p class="accepted-text">お支払い方法：</p>
-    <p class="payment-text">Visa / Mastercard / JCB / Square</p>
+    <p class="payment-text">
+    Visa / Mastercard / JCB / コンビニ決済 / PayPay
+    </p>
     <p class="small-note">※ロゴは商標ガイドラインに基づき省略しています。</p>
     
     
     
   </footer>
 
-  <!-- Square Web Payments SDK（環境で自動切替） -->
-  <script id="square-sdk"></script>
-
   <script>
-  let squareConfig = null;
-  let card = null;
 
   // checkout側でも在庫を確認するために保持
   let productsMap = new Map(); // id -> product
-
-  async function loadSquareConfig() {
-    const res = await fetch("/square-config");
-    squareConfig = await res.json();
-    return squareConfig;
-  }
-
-  async function loadSquareSdk(env) {
-    return new Promise((resolve, reject) => {
-      const script = document.getElementById("square-sdk");
-      script.src =
-        env === "production"
-          ? "https://web.squarecdn.com/v1/square.js"
-          : "https://sandbox.web.squarecdn.com/v1/square.js";
-      script.onload = resolve;
-      script.onerror = () => reject(new Error("Square SDK load failed"));
-    });
-  }
 
   // ✅ サーバーから最新在庫を取得
   async function fetchProducts() {
@@ -178,14 +157,6 @@
 
   function calcTotal(cart) {
     return cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.qty || 1), 0);
-  }
-
-  // ステータス表示
-  function setStatus(text, ok) {
-    const el = document.getElementById("payment-status-container");
-    if (!el) return;
-    el.textContent = text || "";
-    el.style.color = ok ? "green" : "crimson";
   }
 
   // ✅ カート内アイテムを「最新在庫」で検証（決済前に弾く）
@@ -305,30 +276,6 @@
     loadCart();
   };
 
-  async function initSquareCard() {
-    const container = document.getElementById("card-container");
-    if (!container) {
-      console.error("❌ #card-container が見つかりません");
-      return;
-    }
-
-    // ① サーバーから env/appId/locationId を取得
-    const cfg = await loadSquareConfig();
-
-    // ② env に合わせて square.js を読み込む
-    await loadSquareSdk(cfg.env);
-
-    if (!window.Square) {
-      console.error("❌ Square.js failed to load");
-      return;
-    }
-
-    // ③ 取得した appId/locationId を使う
-    const payments = window.Square.payments(cfg.appId, cfg.locationId);
-    card = await payments.card();
-    await card.attach("#card-container");
-  }
-
   function isCustomerInfoComplete() {
     const name = document.getElementById("customer-name")?.value.trim();
     const address = document.getElementById("customer-address")?.value.trim();
@@ -340,7 +287,6 @@
 
   function updatePayButtonsState() {
     const stripeBtn = document.getElementById("stripe-pay");
-    const squareBtn = document.getElementById("square-pay");
     const paypayBtn = document.getElementById("paypay-pay");
     const guide = document.getElementById("checkout-guide");
 
@@ -352,7 +298,6 @@
     const ok = hasCart && customerOk && stockOk;
 
     if (stripeBtn) stripeBtn.disabled = !ok;
-    if (squareBtn) squareBtn.disabled = !ok;
     if (paypayBtn) paypayBtn.disabled = !ok;
 
     if (guide) {
@@ -367,123 +312,6 @@
       }
     }
   }
-
-
-
-
-  async function onPayClick() {
-    const btn = document.getElementById("square-pay");
-
-    try {
-      btn.disabled = true;
-      setStatus("処理中…", true);
-
-      // 入力チェック
-      const name = document.getElementById("customer-name").value.trim();
-      const address = document.getElementById("customer-address").value.trim();
-      const email = document.getElementById("customer-email").value.trim();
-      const phone = document.getElementById("customer-phone").value.trim();
-
-      if (!name || !address || !email || !phone) {
-        alert("お届け先情報をすべて入力してください。");
-        setStatus("", true);
-        btn.disabled = false;
-        return;
-      }
-
-      const cart = getCart();
-      if (!cart || cart.length === 0) {
-        alert("カートが空です。");
-        setStatus("", true);
-        btn.disabled = false;
-        return;
-      }
-
-
-
-
-
-
-
-
-
-
-      // ✅ ここが追加ポイント：決済直前に最新在庫で再チェック
-      await fetchProducts();
-      const stockErrors = validateCartStock(cart);
-      if (stockErrors.length > 0) {
-        alert(stockErrors.join("\n"));
-        loadCart(); // 表示も更新（在庫切れ表示）
-        btn.disabled = false;
-        return;
-      }
-
-      if (!card) {
-        alert("カード入力が初期化できていません。ページを再読み込みしてください。");
-        setStatus("", false);
-        btn.disabled = false;
-        return;
-      }
-
-      // tokenize
-      const tokenResult = await card.tokenize();
-      if (tokenResult.status !== "OK") {
-        alert("カード情報の確認に失敗しました。入力を見直してください。");
-        console.error(tokenResult);
-        setStatus("カード情報の確認に失敗しました。", false);
-        btn.disabled = false;
-        return;
-      }
-
-      // /payment へ送信
-      const res = await fetch("/payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceId: tokenResult.token,
-          idempotencyKey: window.crypto.randomUUID(),
-          cart,
-          email,
-          name,
-          address,
-          phone,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        alert(data.error || "決済に失敗しました。");
-        setStatus(data.error || "決済に失敗しました。", false);
-        btn.disabled = false;
-        return;
-      }
-
-      // success.html 用に保存（←ここを置き換え）
-      localStorage.setItem("lastOrder", JSON.stringify({
-        createdAt: Date.now(),               // ✅ 追加：いつの注文か
-        items: (data.order?.items || cart).map(it => ({
-          id: Number(it.id),                 // ✅ 重要：サムネ表示に必要
-          name: it.name,
-          price: Number(it.price),
-          qty: Number(it.qty || 1),
-        })),
-        total: Number(data.order?.total || calcTotal(cart)),
-      }));
-
-      localStorage.removeItem("cart");
-      window.location.href = "/success.html"; // ✅ 先頭スラッシュで統一
-
-    } catch (e) {
-      console.error(e);
-      alert("例外が発生しました（コンソール参照）");
-      setStatus("例外が発生しました。", false);
-      if (btn) btn.disabled = false;
-    }
-  }
-
-
-
 
 
 
@@ -657,17 +485,6 @@ async function onStripeClick() {
 
     // ③ カート表示
     loadCart();
-
-    // ④ Squareカード欄を初期化
-    if (document.getElementById("card-container")) {
-      await initSquareCard();
-    }
-
-    // ⑤ Squareボタンにイベント追加
-    const squareBtn = document.getElementById("square-pay");
-    if (squareBtn) {
-      squareBtn.addEventListener("click", onPayClick);
-    }
 
     // ★追加
     const stripeBtn = document.getElementById("stripe-pay");
